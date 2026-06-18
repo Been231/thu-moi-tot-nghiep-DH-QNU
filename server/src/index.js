@@ -22,42 +22,42 @@ const defaultConfig = {
   heroImages: [],
   gallery: [],
   graduateName: "Nguyen Van A",
-  degree: "Tan cu nhan Cong nghe thong tin",
-  school: "Truong Dai hoc",
-  eventTitle: "Le tot nghiep",
-  eventDate: "2026-07-20",
-  eventTime: "08:30",
-  locationName: "Hoi truong A",
-  locationAddress: "123 Duong Le Loi, Quan 1, TP. Ho Chi Minh",
+  degree: "Tân cử nhân Công nghệ thông tin",
+  school: "Trường Đại học",
+  eventTitle: "Lễ tốt nghiệp",
+  eventDate: "2026-06-24",
+  eventTime: "07:00",
+  locationName: "Hội trường A",
+  locationAddress: "123 Đường Lê Lợi, Quận 1, TP. Hồ Chí Minh",
   mapUrl: "",
-  hostName: "Gia dinh Nguyen",
-  greeting: "Tran trong kinh moi ban den chung vui trong ngay le tot nghiep.",
+  hostName: "Gia đình Nguyen",
+  greeting: "Trân trọng kính mời bạn đến chung vui trong ngày lễ tốt nghiệp.",
   message:
-    "Su hien dien cua ban la niem vui va niem vinh hanh lon voi minh va gia dinh.",
+    "Sự hiện diện của bạn là niềm vui và là niềm vinh hạnh của mình.",
   privateMessage:
-    "Cam on ban da la mot phan dac biet trong hanh trinh thanh xuan nay.",
+    "Cảm ơn bạn đã là một phần đặc biệt trong hành trình thanh xuân của mình.",
   description:
-    "Day la cot moc danh dau hanh trinh hoc tap va nhung ky niem dang nho.",
-  dressCode: "Lich su, trang nhã",
+    "Đây là cột mốc đánh dấu hành trình học tập và những kỷ niệm đáng nhớ.",
+  dressCode: "Lịch sự, trang nhã",
   phone: "0900000000",
   rsvpUrl: "",
   notes: [
-    "Vui long co mat truoc gio bat dau 15 phut.",
-    "Trang phuc lich su, uu tien tong mau sang.",
-    "Co the xac nhan tham du qua nut ben duoi."
+    "Vui lòng có mặt trước giờ bắt đầu 15 phút.",
+    "Trang phục lịch sự, ưu tiên tông màu sáng.",
+    "Có thể xác nhận tham dự qua nút bên dưới."
   ],
   memories: [
     {
-      title: "Danh hieu",
-      description: "Hoan thanh chuong trinh hoc voi nhieu no luc dang nho."
+      title: "Danh hiệu",
+      description: "Hoàn thành chương trình học với nhiều nỗ lực đáng nhớ."
     },
     {
-      title: "Hoat dong",
-      description: "Tham gia cau lac bo, workshop va cac du an trong thoi gian hoc."
+      title: "Hoạt động",
+      description: "Tham gia câu lạc bộ, workshop và các dự án trong thời gian học."
     },
     {
-      title: "Ngoai khoa",
-      description: "Nhung chuyen di, su kien va khoanh khac cung ban be."
+      title: "Ngoại khóa",
+      description: "Những chuyến đi, sự kiện và khoảnh khắc cùng bạn bè."
     }
   ]
 };

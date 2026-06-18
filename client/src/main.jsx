@@ -122,7 +122,8 @@ function resolveAsset(url) {
 function getEventDateTime(config) {
   if (!config.eventDate) return null;
   const time = config.eventTime || "00:00";
-  const date = new Date(`${config.eventDate}T${time}:00`);
+  const normalizedTime = time.length === 5 ? `${time}:00` : time;
+  const date = new Date(`${config.eventDate}T${normalizedTime}+07:00`);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
