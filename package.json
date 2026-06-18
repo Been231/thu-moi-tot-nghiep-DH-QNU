@@ -1,0 +1,16 @@
+{
+  "name": "thumoitotnghiep",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "build": "npm install --prefix client && npm run build --prefix client",
+    "start": "node server/src/index.js",
+    "postinstall": "npm install --prefix server && npm install --prefix client"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=20"
+  }
+}

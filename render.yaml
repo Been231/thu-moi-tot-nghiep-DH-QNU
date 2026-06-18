@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: thu-moi-tot-nghiep
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: UPLOAD_DIR
+        value: /var/data/uploads
+      - key: DATA_DIR
+        value: /var/data
+      - key: ADMIN_TOKEN
+        sync: false
+    disk:
+      name: invitation-data
+      mountPath: /var/data
+      sizeGB: 1
