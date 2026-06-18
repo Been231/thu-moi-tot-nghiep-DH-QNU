@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: thu-moi-tot-nghiep
+    name: thu-moi-tot-nghiep-dh-qnu
     env: node
     plan: starter
     buildCommand: npm install && npm run build
