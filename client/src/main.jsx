@@ -14,6 +14,7 @@ import {
   Mail,
   MapPin,
   Medal,
+  Music,
   Plus,
   Save,
   Sparkles,
@@ -49,6 +50,13 @@ const emptyConfig = {
   heroImage: "",
   heroImages: [],
   gallery: [],
+  welcomeMedia: "",
+  logoImage: "",
+  openingGreeting: "",
+  musicUrl: "",
+  musicName: "",
+  musicVolume: 75,
+  musicLibrary: [],
   graduateName: "",
   degree: "",
   school: "",
@@ -103,6 +111,8 @@ function normalizeConfig(data) {
     ...data,
     heroImages: [...new Set([...heroImages, ...legacyHeroImage])],
     gallery: Array.isArray(data?.gallery) ? data.gallery : [],
+    musicLibrary: Array.isArray(data?.musicLibrary) ? data.musicLibrary : [],
+    musicVolume: Number.isFinite(Number(data?.musicVolume)) ? Number(data.musicVolume) : emptyConfig.musicVolume,
     notes: Array.isArray(data?.notes) ? data.notes : defaultNotes,
     memories:
       Array.isArray(data?.memories)
@@ -117,6 +127,62 @@ function resolveAsset(url) {
   if (!url) return "";
   if (url.startsWith("http") || url.startsWith("data:")) return url;
   return url;
+}
+
+function isLightCheckerPixel(r, g, b, a) {
+  if (a < 12) return true;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const isNeutral = max - min < 24;
+  return (r > 220 && g > 220 && b > 220) || (isNeutral && r > 145 && g > 145 && b > 145);
+}
+
+function CleanWelcomeImage({ src, className = "", alt = "" }) {
+  const [cleanSrc, setCleanSrc] = useState("");
+  const resolvedSrc = resolveAsset(src);
+
+  useEffect(() => {
+    if (!resolvedSrc) {
+      setCleanSrc("");
+      return;
+    }
+
+    let cancelled = false;
+    const image = new Image();
+    image.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        ctx.drawImage(image, 0, 0);
+        const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = frame.data;
+
+        for (let i = 0; i < data.length; i += 4) {
+          if (isLightCheckerPixel(data[i], data[i + 1], data[i + 2], data[i + 3])) {
+            data[i + 3] = 0;
+          }
+        }
+
+        ctx.putImageData(frame, 0, 0);
+        if (!cancelled) setCleanSrc(canvas.toDataURL("image/png"));
+      } catch {
+        if (!cancelled) setCleanSrc(resolvedSrc);
+      }
+    };
+    image.onerror = () => {
+      if (!cancelled) setCleanSrc(resolvedSrc);
+    };
+    image.src = resolvedSrc;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedSrc]);
+
+  if (!resolvedSrc) return null;
+  return <img className={className} src={cleanSrc || resolvedSrc} alt={alt} />;
 }
 
 function getEventDateTime(config) {
@@ -316,6 +382,16 @@ function EnvelopeScreen({ config, guest, onOpen }) {
   const [confetti, setConfetti] = useState(false);
   const envelopeRef = useRef(null);
   const wrapRef = useRef(null);
+  const baseOpeningGreeting =
+    config.openingGreeting ||
+    "Chào bạn thân mến, Hạnh trân trọng gửi lời mời tham dự lễ tốt nghiệp trong ngày 24/06/2024 sắp đến, mở thiệp phía dưới nhé 😍";
+  const guestDisplayName = guest && guest.name ? `${guest.relation ? `${guest.relation} ` : ""}${guest.name}` : "";
+  const openingGreeting = guestDisplayName
+    ? `Chào ${guestDisplayName} thân mến, ${baseOpeningGreeting
+        .replace(/^Chào bạn thân mến,?\s*/i, "")
+        .replace(/^Chao ban than men,?\s*/i, "")
+        .replace(/^Hạnh\s+/i, "")}`
+    : baseOpeningGreeting;
 
   // Sparkle positions (stable, generated once)
   const sparkles = useMemo(() =>
@@ -330,6 +406,7 @@ function EnvelopeScreen({ config, guest, onOpen }) {
   , []);
 
   const handleOpen = () => {
+    if (opening) return;
     setOpening(true);
     setConfetti(true);
     onOpen();
@@ -366,14 +443,35 @@ function EnvelopeScreen({ config, guest, onOpen }) {
       <div className="env-header">
         <p className="eyebrow" style={{ color: "rgb(255 246 228 / 80%)" }}>Bạn có một thư mời</p>
         <h1 className="env-name">{config.graduateName || "Lễ Tốt Nghiệp"}</h1>
+        {config.welcomeMedia && (
+          <CleanWelcomeImage className="env-welcome-media" src={config.welcomeMedia} alt="Lời chào mở đầu" />
+        )}
       </div>
 
       {/* Phong bì với 3D tilt */}
+      <div className={`env-open-layout${config.welcomeMedia ? " has-media" : ""}`}>
+        <aside className="env-welcome-side">
+          {config.welcomeMedia && (
+            <CleanWelcomeImage className="env-welcome-media env-welcome-media-layout" src={config.welcomeMedia} alt="Loi chao mo dau" />
+          )}
+          <div className="env-opening-bubble">{openingGreeting}</div>
+        </aside>
+
       <div
         className="envelope-wrap"
         ref={wrapRef}
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
+        onClick={handleOpen}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            handleOpen();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Mo thiep moi"
       >
         <div
           className="envelope"
@@ -387,7 +485,11 @@ function EnvelopeScreen({ config, guest, onOpen }) {
           {/* Thân phong bì */}
           <div className="envelope-body">
             <div className="envelope-seal">
-              <GraduationCap size={26} />
+              {config.logoImage ? (
+                <img src={resolveAsset(config.logoImage)} alt="Logo" />
+              ) : (
+                <GraduationCap size={26} />
+              )}
             </div>
           </div>
           {/* Thẻ nhỏ bên trong ló ra khi mở */}
@@ -416,7 +518,9 @@ function EnvelopeScreen({ config, guest, onOpen }) {
       </div>
 
       {/* Tên người được mời – nổi bật bên dưới phong bì, chỉ hiện khi có token */}
-      {guest && (
+      </div>
+
+      {false && guest && (
         <div className="env-to-card">
           <span className="env-to-label">THÂN MỜI</span>
           <div className="env-to-name">
@@ -483,6 +587,9 @@ function Invitation({ config, isOpened }) {
       )}
 
       <section className="content-section intro" data-reveal>
+        {config.welcomeMedia && (
+          <CleanWelcomeImage className="intro-media" src={config.welcomeMedia} alt="Ảnh lời chào mở đầu" />
+        )}
         <Sparkles size={22} />
         <p>{config.greeting}</p>
         <strong>{config.message}</strong>
@@ -712,10 +819,10 @@ function Admin({ config, setConfig }) {
 
   const authHeaders = () => (adminToken ? { "x-admin-token": adminToken } : {});
 
-  const uploadOneImage = async (file) => {
+  const uploadOneFile = async (file) => {
     if (!file) return;
     const formData = new FormData();
-    formData.append("image", file);
+    formData.append("file", file);
     const res = await fetch("/api/upload", {
       method: "POST",
       headers: authHeaders(),
@@ -726,6 +833,8 @@ function Admin({ config, setConfig }) {
     }
     return res.json();
   };
+
+  const uploadOneImage = uploadOneFile;
 
   const uploadImages = async (files, target) => {
     const fileList = Array.from(files || []);
@@ -743,6 +852,70 @@ function Admin({ config, setConfig }) {
     } catch (uploadError) {
       setError(uploadError.message);
     }
+  };
+
+  const uploadWelcomeMedia = async (files) => {
+    const file = Array.from(files || [])[0];
+    if (!file) return;
+    setError("");
+    try {
+      const uploaded = await uploadOneFile(file);
+      updateField("welcomeMedia", uploaded.url);
+    } catch (uploadError) {
+      setError(uploadError.message);
+    }
+  };
+
+  const uploadLogoImage = async (files) => {
+    const file = Array.from(files || [])[0];
+    if (!file) return;
+    setError("");
+    try {
+      const uploaded = await uploadOneFile(file);
+      updateField("logoImage", uploaded.url);
+    } catch (uploadError) {
+      setError(uploadError.message);
+    }
+  };
+
+  const uploadMusic = async (files) => {
+    const file = Array.from(files || [])[0];
+    if (!file) return;
+    setError("");
+    try {
+      const uploaded = await uploadOneFile(file);
+      const track = {
+        url: uploaded.url,
+        name: uploaded.originalName || uploaded.filename || file.name
+      };
+      setConfig((current) => ({
+        ...current,
+        musicUrl: track.url,
+        musicName: track.name,
+        musicLibrary: [track, ...(current.musicLibrary || []).filter((item) => item.url !== track.url)]
+      }));
+    } catch (uploadError) {
+      setError(uploadError.message);
+    }
+  };
+
+  const selectMusic = (url) => {
+    const track = (config.musicLibrary || []).find((item) => item.url === url);
+    setConfig((current) => ({
+      ...current,
+      musicUrl: url,
+      musicName: track ? track.name : ""
+    }));
+  };
+
+  const removeMusic = (url) => {
+    const nextLibrary = (config.musicLibrary || []).filter((item) => item.url !== url);
+    setConfig((current) => ({
+      ...current,
+      musicLibrary: nextLibrary,
+      musicUrl: current.musicUrl === url ? "" : current.musicUrl,
+      musicName: current.musicUrl === url ? "" : current.musicName
+    }));
   };
 
   const removeHeroImage = (image) => {
@@ -771,6 +944,7 @@ function Admin({ config, setConfig }) {
 
   const longTextFields = ["message", "greeting", "description", "privateMessage"];
   const heroImages = config.heroImages || [];
+  const musicLibrary = config.musicLibrary || [];
 
   const save = async () => {
     setSaving(true);
@@ -841,6 +1015,104 @@ function Admin({ config, setConfig }) {
           />
         </label>
       </section>
+
+      {activeTab === "config" && (
+        <>
+          <section className="admin-panel welcome-media-panel">
+            <PanelTitle icon={<Sparkles size={20} />} title="Ảnh/GIF lời chào mở đầu" />
+            <div className="welcome-media-row">
+              {config.welcomeMedia ? (
+                <div className="welcome-media-preview">
+                  <img src={resolveAsset(config.welcomeMedia)} alt="Ảnh/GIF lời chào mở đầu" />
+                  <button type="button" onClick={() => updateField("welcomeMedia", "")} title="Xóa ảnh/GIF">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ) : (
+                <div className="welcome-media-empty">Chưa có ảnh/GIF</div>
+              )}
+              <label className="inline-upload">
+                <ImagePlus size={18} />
+                Thay ảnh/GIF
+                <input type="file" accept="image/*,.gif" onChange={(e) => uploadWelcomeMedia(e.target.files)} />
+              </label>
+            </div>
+            <label className="opening-greeting-field">
+              <span>Lời chào mở đầu</span>
+              <textarea
+                rows={3}
+                value={config.openingGreeting || ""}
+                onChange={(e) => updateField("openingGreeting", e.target.value)}
+                placeholder="VD: Chào bạn thân mến, Hạnh trân trọng gửi lời mời tham dự lễ tốt nghiệp trong ngày 24/06/2024 sắp đến..."
+              />
+            </label>
+          </section>
+
+          <section className="admin-panel logo-panel-admin">
+            <PanelTitle icon={<GraduationCap size={20} />} title="Logo giữa phong bì" />
+            <div className="welcome-media-row">
+              {config.logoImage ? (
+                <div className="welcome-media-preview logo-preview">
+                  <img src={resolveAsset(config.logoImage)} alt="Logo phong bì" />
+                  <button type="button" onClick={() => updateField("logoImage", "")} title="Xóa logo">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ) : (
+                <div className="welcome-media-empty">Chưa có logo</div>
+              )}
+              <label className="inline-upload">
+                <ImagePlus size={18} />
+                Thay logo
+                <input type="file" accept="image/*,.svg" onChange={(e) => uploadLogoImage(e.target.files)} />
+              </label>
+            </div>
+          </section>
+
+          <section className="admin-panel music-panel-admin">
+            <PanelTitle icon={<Music size={20} />} title="Nhạc nền" />
+            <label className="music-select-field">
+              <span>Chọn nhạc</span>
+              <select value={config.musicUrl || ""} onChange={(e) => selectMusic(e.target.value)}>
+                <option value="">Nhạc mặc định</option>
+                {musicLibrary.map((track) => (
+                  <option key={track.url} value={track.url}>{track.name || track.url}</option>
+                ))}
+              </select>
+            </label>
+            <label className="music-volume-field">
+              <span>Âm lượng: {config.musicVolume ?? 75}%</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={config.musicVolume ?? 75}
+                onChange={(e) => updateField("musicVolume", Number(e.target.value))}
+              />
+            </label>
+            <label className="inline-upload music-upload-button">
+              <Music size={18} />
+              Thêm nhạc
+              <input type="file" accept="audio/mpeg,audio/mp4,audio/wav,audio/ogg,.mp3,.m4a,.wav,.ogg" onChange={(e) => uploadMusic(e.target.files)} />
+            </label>
+            {config.musicUrl && (
+              <audio className="admin-audio-preview" controls src={resolveAsset(config.musicUrl)} />
+            )}
+            {musicLibrary.length > 0 && (
+              <div className="music-track-list">
+                {musicLibrary.map((track) => (
+                  <div className="music-track-item" key={track.url}>
+                    <span>{track.name || track.url}</span>
+                    <button type="button" onClick={() => removeMusic(track.url)} title="Xóa nhạc">
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </>
+      )}
 
       {error && <p className="admin-error">{error}</p>}
 
@@ -1211,11 +1483,19 @@ function App() {
   const [isOpened, setIsOpened] = useState(false);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const audioRef = useRef(null);
+  const musicSource = config.musicUrl || "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3";
+  const musicVolume = Math.max(0, Math.min(100, Number(config.musicVolume ?? 75))) / 100;
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = musicVolume;
+    }
+  }, [musicVolume, musicSource]);
 
   const openInvitation = async () => {
     if (audioRef.current) {
       try {
-        audioRef.current.volume = 0.42;
+        audioRef.current.volume = musicVolume;
         await audioRef.current.play();
         setIsMusicPlaying(true);
       } catch {
@@ -1244,8 +1524,8 @@ function App() {
     <>
       {!isAdmin && (
         <>
-          <audio ref={audioRef} loop preload="auto">
-            <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" type="audio/mpeg" />
+          <audio ref={audioRef} key={musicSource} loop preload="auto">
+            <source src={resolveAsset(musicSource)} />
           </audio>
           <MusicToggle
             audioRef={audioRef}

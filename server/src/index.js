@@ -21,6 +21,13 @@ const defaultConfig = {
   heroImage: "",
   heroImages: [],
   gallery: [],
+  welcomeMedia: "",
+  logoImage: "",
+  openingGreeting: "Chào bạn thân mến, Hạnh trân trọng gửi lời mời tham dự lễ tốt nghiệp trong ngày 24/06/2024 sắp đến, mở thiệp phía dưới nhé 😍",
+  musicUrl: "",
+  musicName: "",
+  musicVolume: 75,
+  musicLibrary: [],
   graduateName: "Nguyen Van A",
   degree: "Tân cử nhân Công nghệ thông tin",
   school: "Trường Đại học",
@@ -133,10 +140,10 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 8 * 1024 * 1024 },
+  limits: { fileSize: 24 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (!file.mimetype.startsWith("image/")) {
-      cb(new Error("Only image files are allowed"));
+    if (!file.mimetype.startsWith("image/") && !file.mimetype.startsWith("audio/")) {
+      cb(new Error("Only image and audio files are allowed"));
       return;
     }
     cb(null, true);
@@ -181,10 +188,17 @@ app.put("/api/config", requireAdmin, async (req, res, next) => {
   }
 });
 
-app.post("/api/upload", requireAdmin, upload.single("image"), (req, res) => {
+app.post("/api/upload", requireAdmin, upload.any(), (req, res) => {
+  const file = req.files && req.files[0];
+  if (!file) {
+    res.status(400).json({ message: "No file uploaded" });
+    return;
+  }
   res.status(201).json({
-    url: `/uploads/${req.file.filename}`,
-    filename: req.file.filename
+    url: `/uploads/${file.filename}`,
+    filename: file.filename,
+    originalName: file.originalname,
+    type: file.mimetype.startsWith("audio/") ? "audio" : "image"
   });
 });
 
